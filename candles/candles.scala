@@ -6,9 +6,25 @@ import akka.stream.scaladsl.{Source, Sink, Flow, Keep}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, JsValue}
 
 import scala.concurrent.Future
+
+
+case class ExecutedTrade (
+  timestamp: Long,
+  price: Double,
+  units: Double
+)
+
+object ExecutedTrade {
+  def apply(json: JsValue): ExecutedTrade = ExecutedTrade(
+    // expects [ 570381, "te", "11867708-BTCUSD", 1505224405, 4253.9, -0.37758208 ]
+    (json \ 3).as[Long],
+    (json \ 4).as[Double],
+    (json \ 5).as[Double]
+  )
+}
 
 
 object CandleBuilder {
@@ -17,7 +33,7 @@ object CandleBuilder {
 
 class CandleBuilder extends Actor with ActorLogging {
   def receive: Receive = {
-    case price: Double => println(price)
+    case trade: ExecutedTrade => println(trade)
     case _ =>
   }
 }
@@ -43,10 +59,11 @@ class PriceStream(subscriber: ActorRef) extends Actor {
   val handleIncoming: Sink[Message, Future[Done]] = Sink.foreach {
     case message: TextMessage.Strict =>
       val json = Json.parse(message.text)
-      val messageType = (json \ 1).asOpt[String]
-      if (messageType.contains("te")) {
-        subscriber ! (json \ 4).as[Double]
-      }
+      for {
+        messageType <- (json \ 1).asOpt[String]
+        if messageType.contains("te")
+        trade = ExecutedTrade(json)
+      } subscriber ! trade
     case _ =>
   }
 

@@ -1,6 +1,6 @@
-package candles
+package bitwolf
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, ActorLogging, Props}
 import akka.{Done, NotUsed}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
@@ -14,13 +14,7 @@ import scala.concurrent.Future
 
 
 object PriceStream {
-  def props(subscriber: ActorRef): Props = Props(new PriceStream(subscriber))
-}
-
-class PriceStream(subscriber: ActorRef) extends Actor {
-  import scala.concurrent.ExecutionContext.Implicits.global
-
-  implicit val materializer = ActorMaterializer()
+  case object Subscribe
 
   val subscriptionPayload = """
     {
@@ -30,14 +24,25 @@ class PriceStream(subscriber: ActorRef) extends Actor {
     }
   """
 
+  def props(): Props = Props(new PriceStream)
+}
+
+class PriceStream extends Actor with ActorLogging {
+  import PriceStream.{Subscribe, subscriptionPayload}
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+  implicit val materializer = ActorMaterializer()
+
+  var subscribers = List[ActorRef]()
+
   val handleIncoming: Sink[Message, Future[Done]] = Sink.foreach {
     case message: TextMessage.Strict =>
       val json = Json.parse(message.text)
       for {
         messageType <- (json \ 1).asOpt[String]
         if messageType.contains("te")
-        trade = ExecutedTrade(json)
-      } subscriber ! trade
+        trade <- ExecutedTrade(json)
+      } subscribers.foreach { _ ! trade }
     case _ =>
   }
 
@@ -53,10 +58,12 @@ class PriceStream(subscriber: ActorRef) extends Actor {
     }
   }
 
-  connected.onComplete(println)
-  closed.foreach(_ => println("closed"))
+  connected.onComplete(x => log.info(s"$x"))
+  closed.foreach(_ => log.info("closed"))
 
   def receive: Receive = {
+    case Subscribe =>
+      subscribers = subscribers :+ sender()
     case _ =>
   }
 }

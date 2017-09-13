@@ -1,14 +1,15 @@
-package candles
+package bitwolf
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorRef, ActorLogging, Props}
 
 
 object CandleBuilder {
-  def props(intervalSeconds: Long): Props = Props(new CandleBuilder(intervalSeconds))
+  def props(intervalSeconds: Long, priceStream: ActorRef): Props = Props(new CandleBuilder(intervalSeconds, priceStream))
 }
 
-class CandleBuilder(intervalSeconds: Long) extends Actor with ActorLogging {
+class CandleBuilder(intervalSeconds: Long, priceStream: ActorRef) extends Actor with ActorLogging {
   import scala.math.{ceil, max, min, abs}
+  import PriceStream.Subscribe
 
   var firstTrade = true
   var endTimestamp = 0L
@@ -18,9 +19,10 @@ class CandleBuilder(intervalSeconds: Long) extends Actor with ActorLogging {
   var lastPrice = 0.0
   var units = 0.0
 
+  priceStream ! Subscribe
+
   def receive: Receive = {
     case trade: ExecutedTrade =>
-      println(trade)
       val newEndTimestamp = (ceil(trade.timestamp / intervalSeconds) * intervalSeconds).toLong
       if (endTimestamp == newEndTimestamp) {
         // same candle
@@ -36,7 +38,7 @@ class CandleBuilder(intervalSeconds: Long) extends Actor with ActorLogging {
           low = trade.price
         } else {
           val newCandle = Candle(endTimestamp, intervalSeconds, high, low, open, lastPrice, units)
-          println(newCandle)
+          log.info(s"$newCandle")
           high = Double.NegativeInfinity
           low = Double.PositiveInfinity
         }

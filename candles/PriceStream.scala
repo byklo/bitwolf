@@ -1,4 +1,6 @@
-import akka.actor.{ActorSystem, Actor, ActorRef, ActorLogging, Props}
+package candles
+
+import akka.actor.{Actor, ActorRef, Props}
 import akka.{Done, NotUsed}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
@@ -6,37 +8,9 @@ import akka.stream.scaladsl.{Source, Sink, Flow, Keep}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
 
-import play.api.libs.json.{Json, JsValue}
+import play.api.libs.json.Json
 
 import scala.concurrent.Future
-
-
-case class ExecutedTrade (
-  timestamp: Long,
-  price: Double,
-  units: Double
-)
-
-object ExecutedTrade {
-  def apply(json: JsValue): ExecutedTrade = ExecutedTrade(
-    // expects [ 570381, "te", "11867708-BTCUSD", 1505224405, 4253.9, -0.37758208 ]
-    (json \ 3).as[Long],
-    (json \ 4).as[Double],
-    (json \ 5).as[Double]
-  )
-}
-
-
-object CandleBuilder {
-  def props(): Props = Props(new CandleBuilder)
-}
-
-class CandleBuilder extends Actor with ActorLogging {
-  def receive: Receive = {
-    case trade: ExecutedTrade => println(trade)
-    case _ =>
-  }
-}
 
 
 object PriceStream {
@@ -84,16 +58,5 @@ class PriceStream(subscriber: ActorRef) extends Actor {
 
   def receive: Receive = {
     case _ =>
-  }
-}
-
-
-object CandlesApp {
-  def main(args: Array[String]) {
-    implicit val system = ActorSystem()
-    import system.dispatcher
-
-    val candles = system.actorOf(CandleBuilder.props(), "candles")
-    val priceStream = system.actorOf(PriceStream.props(candles), "priceStream")
   }
 }

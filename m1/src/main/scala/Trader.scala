@@ -2,10 +2,10 @@ package bitwolf
 
 import akka.actor.{Actor, ActorRef, ActorLogging, Props}
 
-class PriceWatch(intervalSeconds: Long) {
+
+class PriceWatch(intervalSeconds: Long, config: Config) {
   import scala.math.{ceil, max, min, abs}
 
-  var firstTrade = true
   var endTimestamp = 0L
   var high = Double.NegativeInfinity
   var low = Double.PositiveInfinity
@@ -13,8 +13,9 @@ class PriceWatch(intervalSeconds: Long) {
   var lastPrice = 0.0
   var units = 0.0
 
-  val sma10 = new SimpleMovingAverage(10)
-  val sma20 = new SimpleMovingAverage(20)
+  val ema10 = EMA(10, config.ema10)
+  val ema21 = EMA(21, config.ema21)
+  val ema100 = EMA(100, config.ema100)
 
   def consume(trade: ExecutedTrade) = {
     val newEndTimestamp = (ceil(trade.timestamp / intervalSeconds) * intervalSeconds).toLong
@@ -26,18 +27,21 @@ class PriceWatch(intervalSeconds: Long) {
       units += abs(trade.units)
     } else {
       // start new candle
-      if (firstTrade) {
-        firstTrade = false
+      if (endTimestamp == 0L) {
+        // first candle
         high = trade.price
         low = trade.price
       } else {
         val newCandle = Candle(endTimestamp, intervalSeconds, high, low, open, lastPrice, units)
         println(s"$newCandle")
-        // currently sends CLOSING PRICE to SMA, consider using mean or >>[median]<<
-        sma10.update(lastPrice)
-        sma20.update(lastPrice)
-        println(s"MA10 = ${sma10.current}")
-        println(s"MA20 = ${sma20.current}")
+        // currently sends CLOSING PRICE to EMA, consider using mean or >>[median]<<
+        ema10.update(lastPrice)
+        ema21.update(lastPrice)
+        ema100.update(lastPrice)
+
+        println(s"EMA10 = ${ema10.current}")
+        println(s"EMA21 = ${ema21.current}")
+        println(s"EMA100 = ${ema100.current}")
         high = Double.NegativeInfinity
         low = Double.PositiveInfinity
       }
@@ -51,13 +55,13 @@ class PriceWatch(intervalSeconds: Long) {
 
 
 object Trader {
-  def props(intervalSeconds: Long, priceStream: ActorRef): Props = Props(new Trader(intervalSeconds, priceStream))
+  def props(intervalSeconds: Long, priceStream: ActorRef, config: Config): Props = Props(new Trader(intervalSeconds, priceStream, config))
 }
 
-class Trader(intervalSeconds: Long, priceStream: ActorRef) extends Actor with ActorLogging {
+class Trader(intervalSeconds: Long, priceStream: ActorRef, config: Config) extends Actor with ActorLogging {
   import PriceStream.Subscribe
 
-  val pricing = new PriceWatch(intervalSeconds)
+  val pricing = new PriceWatch(intervalSeconds, config)
 
   priceStream ! Subscribe
 

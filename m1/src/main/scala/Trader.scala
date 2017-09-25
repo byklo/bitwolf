@@ -3,7 +3,7 @@ package bitwolf
 import akka.actor.{Actor, ActorRef, ActorLogging, Props}
 
 
-class PriceWatch(intervalSeconds: Long, config: Config) {
+class PriceWatch(intervalSeconds: Long, config: BitwolfConfig) {
   import scala.math.{ceil, max, min, abs}
 
   var endTimestamp = 0L
@@ -55,15 +55,15 @@ class PriceWatch(intervalSeconds: Long, config: Config) {
 
 
 object Trader {
-  def props(intervalSeconds: Long, priceStream: ActorRef, config: Config): Props = Props(new Trader(intervalSeconds, priceStream, config))
+  def props(intervalSeconds: Long, tradeStream: ActorRef, config: BitwolfConfig): Props = Props(new Trader(intervalSeconds, tradeStream, config))
 }
 
-class Trader(intervalSeconds: Long, priceStream: ActorRef, config: Config) extends Actor with ActorLogging {
-  import PriceStream.Subscribe
+class Trader(intervalSeconds: Long, tradeStream: ActorRef, config: BitwolfConfig) extends Actor with ActorLogging {
+  import TradeStream.Subscribe
 
   val pricing = new PriceWatch(intervalSeconds, config)
 
-  priceStream ! Subscribe
+  tradeStream ! Subscribe
 
   def receive: Receive = {
     case trade: ExecutedTrade =>

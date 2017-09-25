@@ -13,7 +13,7 @@ case class BitwolfConfig(
 object Bitwolf {
   def main(args: Array[String]) {
   	val parser = new OptionParser[BitwolfConfig]("bitwolf") {
-  		head("bitwolf 0.1")
+  		head("BITWOLF")
   		opt[Double]("ema10").action( (x,c) => c.copy(ema10 = Some(x)) ).text("initial ema10 value")
   		opt[Double]("ema21").action( (x,c) => c.copy(ema21 = Some(x)) ).text("initial ema21 value")
   		opt[Double]("ema100").action( (x,c) => c.copy(ema100 = Some(x)) ).text("initial ema100 value")
@@ -40,7 +40,7 @@ case class BacktestConfig(
 object Backtest {
   def main(args: Array[String]) {
     val parser = new OptionParser[BacktestConfig]("backtest") {
-      head("bitwolf 0.1")
+      head("BACKTEST")
       opt[String]("trades").required().action( (x,c) => c.copy(tradesFilepath = x) ).text("trades csv")
       opt[Int]("rate").action( (x,c) => c.copy(rate = x) ).text("# trades read per second (0 < rate < 1000)")
       help("help").text("usage dialog")

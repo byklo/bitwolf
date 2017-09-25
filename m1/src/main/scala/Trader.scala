@@ -2,29 +2,6 @@ package bitwolf
 
 import akka.actor.{Actor, ActorRef, ActorLogging, Props}
 
-class SimpleMovingAverage(n: Int) {
-  var prices = List[Double]()
-  var current = 0.0
-
-  def peek(price: Double) = {
-    if (prices.size < n) {
-      (current * prices.size + price) / (prices.size + 1)
-    } else {
-      (current * n - prices.last + price) / n
-    }
-  }
-
-  def update(price: Double) {
-    if (prices.size < n) {
-      current = (current * prices.size + price) / (prices.size + 1)
-    } else {
-      current = (current * n - prices.last + price) / n
-      prices = prices.dropRight(1)
-    }
-    prices = price :: prices
-  }
-}
-
 class PriceWatch(intervalSeconds: Long) {
   import scala.math.{ceil, max, min, abs}
 
@@ -56,6 +33,7 @@ class PriceWatch(intervalSeconds: Long) {
       } else {
         val newCandle = Candle(endTimestamp, intervalSeconds, high, low, open, lastPrice, units)
         println(s"$newCandle")
+        // currently sends CLOSING PRICE to SMA, consider using mean or >>[median]<<
         sma10.update(lastPrice)
         sma20.update(lastPrice)
         println(s"MA10 = ${sma10.current}")

@@ -9,6 +9,6 @@ strategy will be based on mean reversion (EMAs).
 3. ~~simple moving averages~~
 4. ~~exponential moving averages~~
 5. ~~be able to read trades from a csv~~
-6. develop strategy, buy/sell signals
+6. develop strategy, state logic, buy/sell signals
 7. backtest, optimize strategy
 8. implement trade execution

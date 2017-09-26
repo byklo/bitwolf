@@ -14,7 +14,7 @@ strategy will be based on mean reversion (EMAs).
 8. implement trade execution
 
 ## usage
-root level directory is intended to hold different scala projects.
+root level directory is intended to hold different scala (sbt) projects.
 `candles` is just a POC of candle building logic.
 `m1` holds the current and first iteration of the bot.
 `m1` has 2 entry points: `Backtest` and `Bitwolf`.

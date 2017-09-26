@@ -12,3 +12,13 @@ strategy will be based on mean reversion (EMAs).
 6. develop strategy, state logic, buy/sell signals
 7. backtest, optimize strategy
 8. implement trade execution
+
+## usage
+root level directory is intended to hold different scala projects.
+`candles` is just a POC of candle building logic.
+`m1` holds the current and first iteration of the bot.
+`m1` has 2 entry points: `Backtest` and `Bitwolf`.
+
+under `bitwolf/m1`:
+- `sbt run --help` for usage for both entry points
+- `sbt test` to run tests
